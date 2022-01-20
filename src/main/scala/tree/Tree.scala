@@ -1,4 +1,4 @@
-package example
+package tree
 
 import scala.math.{pow, abs}
 
@@ -6,9 +6,11 @@ import scala.math.{pow, abs}
 private enum Branch(val condition: Double): 
     case Left extends Branch(1.0)
     case Right extends Branch(0.0)
+      
         
 class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
     private var _feature: Option[String] = None 
+    private var _splitError: Option[Double] = None
     private var _left: Option[Tree] = None 
     private var _right: Option[Tree] = None      
 
@@ -32,24 +34,39 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
             (fName, values.zip(x).filter(_._2 == branch.condition).map(_._1)))
 
     /**
-     * @return name of the feature used in the partition
+     * @return name of the feature used in the partition of the root node
      */
     def feature: Option[String] = _feature
 
     /**
-     * @return left child 
+     * @return left subtree 
      */
     def left: Option[Tree] = _left 
 
     /**
-     * @return right child 
+     * @return right subtree 
      */
     def right: Option[Tree] = _right
 
     /**
-     * @return square error of this node 
+     * @return error of the split
      */
-    def sqError: Double = Tree.sqError(Y)
+    def splitError: Option[Double] = _splitError
+
+    /**
+     * @return square error of the root node 
+     */
+    def error: Double = Tree.sqError(Y)
+
+    /**
+     * @return number of datapoints in the root node
+     */ 
+    def datapoints: Int = Y.size
+
+    /**
+     * @return mean of the datapoints in the root node
+     */
+    def mean: Double = Tree.mean(Y)
 
     /**
      * @return height of the tree
@@ -68,7 +85,9 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
             _right.get.split
 
         else if X.size > 0 && !X.map((fName, values) => values.isEmpty).reduce(_ && _) then
+            var minErrorFeature: String = ""
             var minError: Double = Double.MaxValue
+
             for     
                 fName <- X.keys
                 leftY = selectY(fName, Branch.Left)  
@@ -77,28 +96,36 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
                 if error < minError
             do  
                 minError = error
-                val leftX = selectX(fName, Branch.Left)
-                val rightX = selectX(fName, Branch.Right)
-                _feature = Some(fName)
-                _left = Some(Tree(leftX, leftY, level + 1))
-                _right = Some(Tree(rightX, rightY, level + 1))        
+                minErrorFeature = fName
+
+            val leftY = selectY(minErrorFeature, Branch.Left)
+            val rightY = selectY(minErrorFeature, Branch.Right)
+            val leftX = selectX(minErrorFeature, Branch.Left)
+            val rightX = selectX(minErrorFeature, Branch.Right)
+            _splitError = Some(minError)
+            _feature = Some(minErrorFeature)
+            _left = Some(Tree(leftX, leftY, level + 1))
+            _right = Some(Tree(rightX, rightY, level + 1))        
 
     /**
      * @return string representation of this Tree
      */
     override def toString: String = 
+        val indent = "    "*(level) 
         val leftString = _left match
             case Some(left) => left.toString 
             case None => "" 
         val rightString = _right match 
             case Some(right) => right.toString
             case None => ""
-        val featureStr = feature match 
-            case Some(s) => s"($s)"
-            case None => ""
-        val tabs = "    "*(level) 
-
-        s"$tabs$level - [error = ${sqError} ${featureStr}]\n" + leftString + rightString
+        
+        s"${indent}level: ${level}\n" +
+        s"${indent}datapoints: ${datapoints}\n" +
+        s"${indent}error_of_split: ${splitError.getOrElse("")}\n" + 
+        s"${indent}mean: ${mean}\n" + 
+        s"${indent}split_by_feature: ${feature.getOrElse("")}\n" +
+        s"${indent}successor_left:\n" + leftString +
+        s"${indent}successor_right:\n" + rightString
     
 
 object Tree: 
