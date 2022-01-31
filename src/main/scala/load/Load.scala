@@ -1,19 +1,20 @@
 package load
 
-import org.apache.poi.ss.usermodel.{ DataFormatter, WorkbookFactory, Row, Cell}
+import org.apache.poi.ss.usermodel.{DataFormatter, WorkbookFactory, Row, Cell}
 import java.io.File
 import collection.JavaConverters.*
 import scala.collection.{mutable}
 
-enum Selection:
-    case All, Sample, NotSample
 
 object Load:
 
     /* Total number of instances */
     val n: Int = 72
 
-    /** Selected sample */
+    /** All ids **/ 
+    val allIds: List[Int] = (0 until n).toList 
+
+    /** Sample ids */
     val sampleIds: List[Int] = List(
         List(0,12),         // Distance 0
         List(3,6,15,18),    // Distance 1
@@ -24,12 +25,15 @@ object Load:
         List(71,59,35,58)   // Distance 6
     ).flatMap(x => x)
 
+    /** No-sample ids **/
+    val noSampleIds: List[Int] = (allIds.toSet diff sampleIds.toSet).toList
+
     /**
-     * @param conf 
-     * @return (features values, performance)
+     * @param subset list of identifiers to be included
+     * @return (features values, performance, distance)
      */
-    def loadMeasurements(conf: Selection = Selection.Sample): 
-            (Map[String, List[Boolean]], List[Double], List[Int], List[Int]) = 
+    def load(subset: List[Int]): 
+            (Map[String, List[Boolean]], List[Double], List[Int]) = 
 
         var header: List[String] = List[String]() 
         var ids: List[Int] = List[Int]()
@@ -63,21 +67,32 @@ object Load:
                 ) :: X(header(j))
 
         // Obtain a filtering of the intances
-        val included: Array[Boolean] = conf match 
-            case Selection.All => Array.fill(n)(true)
-            case Selection.Sample => ids.map(id => sampleIds.contains(id)).toArray
-            case Selection.NotSample => ids.map(id => !sampleIds.contains(id)).toArray
+        val included: Array[Boolean] = ids.map(id => subset.contains(id)).toArray
         
-        // Include only the specified subset (all, sample, or not-sample)
+        // Include only the specified subset
         X.map((key, values) => X(key) = 
             values.zip(0 until values.length)
                   .filter((value, i) => included(i))
                   .map((value, i) => value)
                   .toList
         )
+
         Y = Y.zip(0 until Y.length)
              .filter((y, i) => included(i))
              .map((y, i) => y)
              .toList
+
+        distances = distances.zip(0 until distances.length)
+             .filter((d, i) => included(i))
+             .map((d, i) => d)
+             .toList
         
-        return (X.toMap, Y, ids, distances)
+        return (X.toMap, Y, distances)
+
+    /**
+     * @param instance's identifier
+     * @return a single instance 
+     */
+    def loadOne(id: Int): (Map[String, Boolean], Double, Int) =
+        val (x, y, distances) = load(List(id))
+        (x.map((k,v) => (k -> v(0))), y(0), distances(0))

@@ -86,6 +86,8 @@ class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double], val name: Strin
                     case 'R' => _right match 
                         case Some(t) => t.subTree(id.tail)
                         case None => None
+
+                    case _ => throw Exception("invalid identifier")
             )
 
     /**
