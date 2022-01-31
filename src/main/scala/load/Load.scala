@@ -96,3 +96,17 @@ object Load:
     def loadOne(id: Int): (Map[String, Boolean], Double, Int) =
         val (x, y, distances) = load(List(id))
         (x.map((k,v) => (k -> v(0))), y(0), distances(0))
+
+    
+    // def loadTest(): (Map[String, List[Boolean]], List[Double], List[Int]) =
+    //     val testX: Map[String, List[Boolean]] = Map(
+    //         "x1" -> List(true,  true,   true, true, true, true, true, true, true, true), 
+    //         "x2" -> List(false, false, true, true, false, true, true, false, true, false),
+    //         "x3" -> List(true,  true,   false, true, false, false, true, true, true, false),
+    //         "x4" -> List(true,  false, true, true, false, false, true, false, false, true),
+    //         "x5" -> List(true,  false, false, true, false, true, false, true, false, false)
+    //     )
+
+    //     val testY: List[Double] = List(207, 342, 222, 300, 180, 612, 269, 406, 130, 390)
+
+    //     return (testX, testY, List.fill(10)(0))

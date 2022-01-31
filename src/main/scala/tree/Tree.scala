@@ -8,7 +8,7 @@ private enum Branch(val condition: Boolean):
     case Right extends Branch(false)
       
         
-class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double], val name: String = "X"):
+class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double]):
 
     private var _splitFeature: Option[String] = None 
     private var _left: Option[Tree] = None 
@@ -61,13 +61,13 @@ class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double], val name: Strin
      * @return height of the tree
      */
     def height: Int = 
-        def childHeight(child: Option[Tree]) = 
+        def h(child: Option[Tree]) = 
             child match
                 case Some(c) =>  1 + c.height 
                 case None => 0  
         
-        val leftHeight = childHeight(_left)
-        val rightHeight = childHeight(_right)
+        val leftHeight = h(_left)
+        val rightHeight = h(_right)
         if leftHeight > rightHeight then leftHeight else rightHeight
 
     /**
@@ -94,12 +94,12 @@ class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double], val name: Strin
      * Splits the tree until no further splits are possible 
      */ 
     def splitAll: Unit = 
-        var prevHeight: Int = this.height 
+        var prevHeight: Int = height 
 
         while 
-            this.split 
-            this.height > prevHeight
-        do (prevHeight = this.height)
+            split 
+            height > prevHeight
+        do (prevHeight = height)
 
     /**
      * Split the leaf nodes increasing the height of the tree
@@ -125,13 +125,13 @@ class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double], val name: Strin
                 minError = error
                 minErrorFeature = fName
 
-            val leftY = Tree.selectY(X, Y,minErrorFeature, Branch.Left)
-            val rightY = Tree.selectY(X, Y,minErrorFeature, Branch.Right)
+            val leftY = Tree.selectY(X, Y, minErrorFeature, Branch.Left)
+            val rightY = Tree.selectY(X, Y, minErrorFeature, Branch.Right)
             val leftX = Tree.selectX(X, minErrorFeature, Branch.Left)
             val rightX = Tree.selectX(X, minErrorFeature, Branch.Right)
             _splitFeature = Some(minErrorFeature)
-            _left = Some(Tree(leftX, leftY, name + "L"))
-            _right = Some(Tree(rightX, rightY, name + "R"))        
+            _left = Some(Tree(leftX, leftY))
+            _right = Some(Tree(rightX, rightY))        
 
     /**
      * @param x a configuration,    pairs (feature name, value)
@@ -141,37 +141,47 @@ class Tree(val X: Map[String, Seq[Boolean]], val Y: Seq[Double], val name: Strin
         splitFeature match
             case None => Tree.mean(Y) // no children
             case Some(feature) => (
-                x.keys.toList.contains(feature) match 
-                    case false => Tree.mean(Y) 
-                    case true => (if x(feature) then _left.get.predict(x) else _right.get.predict(x))
+                if !x.keys.toList.contains(feature) then // features exhausted
+                    Tree.mean(Y) 
+                else if x(feature) then                  // feature set to 1
+                    _left.get.predict(x)
+                else                                    // feature set to 0 
+                    _right.get.predict(x)
             )
-        
+    
     /**
-     * @return string representation of this Tree
+     * @return string representation of a sub-tree
      */
-    override def toString: String = 
-        val indent = "  " * (name.length-1) 
+    private def toSubstring(id: String): String = 
+        val indent = "  " * (id.length-1) 
 
         val errorSplitString = splitError match
             case Some(err) => s"${indent}error_of_split: ${Tree.roundValue(err)}\n" 
             case None => s"${indent}error_of_split:\n"
 
         val leftString = _left match
-            case Some(left) => s"${indent}successor_left:\n" + left.toString 
+            case Some(left) => s"${indent}successor_left:\n" + left.toSubstring(id + "L")
             case None => "" 
 
         val rightString = _right match 
-            case Some(right) => s"${indent}successor_right:\n" + right.toString
+            case Some(right) => s"${indent}successor_right:\n" + right.toSubstring(id + "R")
             case None => ""
         
         s"${indent}datapoints: ${datapoints}\n" +
         errorSplitString + 
         s"${indent}mean: ${Tree.roundValue(mean)}\n" +
-        s"${indent}name: ${name}\n" +
+        s"${indent}name: ${id}\n" +
         s"${indent}split_by_splitFeature: ${splitFeature.getOrElse("")}\n" +
         leftString +
         rightString
-    
+
+     /**
+     * @return string representation of this Tree
+     */
+    override def toString: String =        
+        val id = "X"
+        toSubstring(id)
+
 
 object Tree: 
 
@@ -223,15 +233,3 @@ object Tree:
         val x = X(feature)
         X.filter((k, vals) => k != feature)
             .map((k, vals) => (k, vals.zip(x).filter((vals, x) => x == branch.condition).map((vals, x) => vals)))
-
-
-val testX: Map[String, List[Boolean]] = Map(
-    "x1" -> List(true,  true,   true, true, true, true, true, true, true, true), 
-    "x2" -> List(false, false, true, true, false, true, true, false, true, false),
-    "x3" -> List(true,  true,   false, true, false, false, true, true, true, false),
-    "x4" -> List(true,  false, true, true, false, false, true, false, false, true),
-    "x5" -> List(true,  false, false, true, false, true, false, true, false, false)
-)
-
-val testY: List[Double] = List(207, 342, 222, 300, 180, 612, 269, 406, 130, 390)
-
