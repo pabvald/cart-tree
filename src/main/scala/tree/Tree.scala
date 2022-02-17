@@ -7,12 +7,14 @@ private enum Branch(val condition: Double):
     case Left extends Branch(1.0)
     case Right extends Branch(0.0)
       
-        
-class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
+    
+class RegressionTree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
+
+
     private var _feature: Option[String] = None 
     private var _splitError: Option[Double] = None
-    private var _left: Option[Tree] = None 
-    private var _right: Option[Tree] = None      
+    private var _left: Option[RegressionTree] = None 
+    private var _right: Option[RegressionTree] = None      
 
     /**
      * @param fName feature name
@@ -41,12 +43,12 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
     /**
      * @return left subtree 
      */
-    def left: Option[Tree] = _left 
+    def left: Option[RegressionTree] = _left 
 
     /**
      * @return right subtree 
      */
-    def right: Option[Tree] = _right
+    def right: Option[RegressionTree] = _right
 
     /**
      * @return error of the split
@@ -56,7 +58,7 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
     /**
      * @return square error of the root node 
      */
-    def error: Double = Tree.sqError(Y)
+    def error: Double = RegressionTree.sqError(Y)
 
     /**
      * @return number of datapoints in the root node
@@ -66,7 +68,7 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
     /**
      * @return mean of the datapoints in the root node
      */
-    def mean: Double = Tree.mean(Y)
+    def mean: Double = RegressionTree.mean(Y)
 
     /**
      * @return height of the tree
@@ -92,7 +94,7 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
                 fName <- X.keys
                 leftY = selectY(fName, Branch.Left)  
                 rightY = selectY(fName, Branch.Right)  
-                error =  Tree.sqError(leftY) + Tree.sqError(rightY)                
+                error =  RegressionTree.sqError(leftY) + RegressionTree.sqError(rightY)                
                 if error < minError
             do  
                 minError = error
@@ -104,11 +106,11 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
             val rightX = selectX(minErrorFeature, Branch.Right)
             _splitError = Some(minError)
             _feature = Some(minErrorFeature)
-            _left = Some(Tree(leftX, leftY, level + 1))
-            _right = Some(Tree(rightX, rightY, level + 1))        
+            _left = Some(RegressionTree(leftX, leftY, level + 1))
+            _right = Some(RegressionTree(rightX, rightY, level + 1))        
 
     /**
-     * @return string representation of this Tree
+     * @return string representation of this RegressionTree
      */
     override def toString: String = 
         val indent = "    "*(level) 
@@ -128,7 +130,7 @@ class Tree(val X: Map[String, Seq[Double]], val Y: Seq[Double], level: Int = 0):
         s"${indent}successor_right:\n" + rightString
     
 
-object Tree: 
+object RegressionTree: 
 
     /**
      * @param sample list of values
